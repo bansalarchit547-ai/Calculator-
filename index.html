@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Four-Operation Calculator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+          boxShadow: {
+            'glow-cyan': '0 0 20px -5px rgba(6, 182, 212, 0.5)',
+            'glow-purple': '0 0 20px -5px rgba(168, 85, 247, 0.5)',
+            'neumorph-light': '8px 8px 16px #d1d5db, -8px -8px 16px #ffffff',
+            'neumorph-dark': '8px 8px 16px #0f172a, -8px -8px 16px #1e293b',
+          }
+        }
+    
+    
+  </script>
+
+  <style>
+    /* Custom utility animations and scrollbar */
+    .btn-press {
+      transition: transform 0.08s ease, filter 0.15s ease, background-color 0.15s ease;
+    }
+    .btn-press:active, .btn-active-key {
+      transform: scale(0.93) translateY(2px);
+      filter: brightness(1.2);
+    }
+    
+    /* Custom scrollbar for history panel */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex items-center justify-center p-3 sm:p-6 transition-colors duration-300 select-none">
+
+  <!-- Main Container -->
+  <div class="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300 flex flex-col md:flex-row">
+    
+    <!-- Calculator Panel -->
+    <div class="w-full md:w-[420px] p-5 sm:p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
+      
+      <!-- Top Header & Controls -->
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-red-500"></div>
+          <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+          <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+          <span class="text-xs font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase ml-2">Calc Standard</span>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <!-- History Toggle for Mobile -->
+          <button id="toggle-history-btn" class="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Toggle History">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </button>
+          <!-- Theme Switcher Button -->
+          <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+            <i id="theme-icon" class="fa-solid fa-moon text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Display Area -->
+      <div class="bg-slate-50 dark:bg-slate-950/70 p-4 sm:p-5 rounded-2xl mb-5 border border-slate-200/80 dark:border-slate-800/80 shadow-inner flex flex-col justify-end items-end h-32 sm:h-36 overflow-hidden">
+        <!-- Expression Preview -->
+        <div id="expression-display" class="text-sm sm:text-base text-slate-400 dark:text-slate-500 font-mono font-medium h-6 overflow-hidden text-ellipsis whitespace-nowrap w-full text-right"></div>
+        <!-- Primary Output Display -->
+        <div id="main-display" class="text-3xl sm:text-4xl md:text-5xl font-mono font-bold text-slate-900 dark:text-white tracking-tight overflow-x-auto overflow-y-hidden max-w-full text-right scrollbar-none">
+          0
+        </div>
+      </div>
+
+      <!-- Keypad Grid -->
+      <div class="grid grid-cols-4 gap-2.5 sm:gap-3">
+        <!-- Row 1 -->
+        <button data-action="clear" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-red-500 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/40 text-base sm:text-lg">AC</button>
+        <button data-action="delete" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 text-base sm:text-lg"><i class="fa-solid fa-backspace"></i></button>
+        <button data-action="toggle-sign" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 text-base sm:text-lg">+/-</button>
+        <button data-operator="/" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-800/40 text-lg sm:text-xl flex items-center justify-center">÷</button>
+
+        <!-- Row 2 -->
+        <button data-number="7" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">7</button>
+        <button data-number="8" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">8</button>
+        <button data-number="9" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">9</button>
+        <button data-operator="*" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-800/40 text-lg sm:text-xl flex items-center justify-center">×</button>
+
+        <!-- Row 3 -->
+        <button data-number="4" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">4</button>
+        <button data-number="5" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">5</button>
+        <button data-number="6" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">6</button>
+        <button data-operator="-" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-800/40 text-lg sm:text-xl flex items-center justify-center">−</button>
+
+        <!-- Row 4 -->
+        <button data-number="1" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">1</button>
+        <button data-number="2" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">2</button>
+        <button data-number="3" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">3</button>
+        <button data-operator="+" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-800/40 text-lg sm:text-xl flex items-center justify-center">+</button>
+
+        <!-- Row 5 -->
+        <button data-number="0" class="btn-press col-span-2 py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl text-left pl-6">0</button>
+        <button data-action="decimal" class="btn-press py-3.5 sm:py-4 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/80 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-lg sm:text-xl">.</button>
+        <button data-action="calculate" class="btn-press py-3.5 sm:py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-lg shadow-cyan-500/30 dark:shadow-cyan-900/50 text-lg sm:text-xl flex items-center justify-center">=</button>
+      </div>
+    </div>
+
+    <!-- History Panel -->
+    <div id="history-panel" class="hidden md:flex flex-1 p-5 sm:p-6 bg-slate-50/50 dark:bg-slate-900/50 flex-col justify-between min-h-[300px]">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4">
+          <h3 class="font-bold text-sm text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-cyan-500"></i> History Log
+          </h3>
+          <button id="clear-history" class="text-xs text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex items-center gap-1 font-medium">
+            <i class="fa-solid fa-trash-can"></i> Clear
+          </button>
+        </div>
+
+        <div id="history-list" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+          <!-- History Items populated dynamically -->
+          <div id="empty-history" class="text-center py-10 text-slate-400 dark:text-slate-600 text-sm italic">
+            No recent calculations
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-600 flex justify-between items-center">
+        <span>Keyboard Enabled</span>
+        <span class="font-mono bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px]">Esc / Enter / Operations</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // State management variables
+    let currentInput = '0';
+    let previousInput = '';
+    let selectedOperator = null;
+    let shouldResetDisplay = false;
+    let history = [];
+
+    // DOM Elements
+    const mainDisplay = document.getElementById('main-display');
+    const expressionDisplay = document.getElementById('expression-display');
+    const historyList = document.getElementById('history-list');
+    const emptyHistory = document.getElementById('empty-history');
+    const clearHistoryBtn = document.getElementById('clear-history');
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const toggleHistoryBtn = document.getElementById('toggle-history-btn');
+    const historyPanel = document.getElementById('history-panel');
+
+    // Operator display map
+    const opSymbols = {
+      '+': '+',
+      '-': '−',
+      '*': '×',
+      '/': '÷'
+    };
+
+    // Initialize Theme
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+      themeIcon.classList.replace('fa-moon', 'fa-sun');
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      if (document.documentElement.classList.contains('dark')) {
+        themeIcon.classList.replace('fa-moon', 'fa-sun');
+      } else {
+        themeIcon.classList.replace('fa-sun', 'fa-moon');
+      }
+    });
+
+    toggleHistoryBtn.addEventListener('click', () => {
+      historyPanel.classList.toggle('hidden');
+    });
+
+    // Helper functions for Display
+    function updateDisplay() {
+      // Format number to include commas for readability
+      if (currentInput === 'Error' || currentInput === 'Infinity' || currentInput === 'NaN') {
+        mainDisplay.textContent = 'Error';
+        return;
+      }
+
+      const parts = currentInput.split('.');
+      parts[0] = Number(parts[0]).toLocaleString('en-US', { maximumFractionDigits: 12 });
+      mainDisplay.textContent = parts.join('.');
+
+      if (selectedOperator !== null) {
+        expressionDisplay.textContent = `${formatNumber(previousInput)} ${opSymbols[selectedOperator]}`;
+      } else {
+        expressionDisplay.textContent = '';
+      }
+    }
+
+    function formatNumber(numStr) {
+      if (!numStr) return '';
+      const parts = numStr.split('.');
+      parts[0] = Number(parts[0]).toLocaleString('en-US');
+      return parts.join('.');
+    }
+
+    // Number Handling
+    function appendNumber(number) {
+      if (currentInput === '0' || shouldResetDisplay) {
+        currentInput = number;
+        shouldResetDisplay = false;
+      } else {
+        // Limit digit length to avoid overflow
+        if (currentInput.replace('.', '').length < 14) {
+          currentInput += number;
+        }
+      }
+      updateDisplay();
+    }
+
+    // Decimal Point Handling
+    function appendDecimal() {
+      if (shouldResetDisplay) {
+        currentInput = '0.';
+        shouldResetDisplay = false;
+      } else if (!currentInput.includes('.')) {
+        currentInput += '.';
+      }
+      updateDisplay();
+    }
+
+    // Four basic math operations logic
+    function setOperator(operator) {
+      if (selectedOperator !== null && !shouldResetDisplay) {
+        compute();
+      }
+      previousInput = currentInput;
+      selectedOperator = operator;
+      shouldResetDisplay = true;
+      updateDisplay();
+    }
+
+    // Perform Four-Operation Calculation
+    function compute() {
+      if (selectedOperator === null || shouldResetDisplay) return;
+
+      const prev = parseFloat(previousInput);
+      const current = parseFloat(currentInput);
+      let result = 0;
+
+      if (isNaN(prev) || isNaN(current)) return;
+
+      switch (selectedOperator) {
+        case '+':
+          result = prev + current;
+          break;
+        case '-':
+          result = prev - current;
+          break;
+        case '*':
+          result = prev * current;
+          break;
+        case '/':
+          if (current === 0) {
+            currentInput = 'Error';
+            selectedOperator = null;
+            updateDisplay();
+            return;
+          }
+          result = prev / current;
+          break;
+        default:
+          return;
+      }
+
+      // Round results to prevent JS floating point precision issues (e.g. 0.1 + 0.2)
+      result = Math.round(result * 1e10) / 1e10;
+      
+      const fullExpression = `${formatNumber(previousInput)} ${opSymbols[selectedOperator]} ${formatNumber(currentInput)}`;
+      
+      // Add to history list
+      addHistoryItem(fullExpression, result.toString());
+
+      currentInput = result.toString();
+      selectedOperator = null;
+      expressionDisplay.textContent = `${fullExpression} =`;
+      mainDisplay.textContent = Number(currentInput).toLocaleString('en-US', { maximumFractionDigits: 10 });
+      shouldResetDisplay = true;
+    }
+
+    // Toggle positive/negative sign
+    function toggleSign() {
+      if (currentInput === '0' || currentInput === 'Error') return;
+      currentInput = (parseFloat(currentInput) * -1).toString();
+      updateDisplay();
+    }
+
+    // Clear single character (Backspace)
+    function deleteChar() {
+      if (shouldResetDisplay) return;
+      if (currentInput.length === 1 || (currentInput.length === 2 && currentInput.startsWith('-'))) {
+        currentInput = '0';
+      } else {
+        currentInput = currentInput.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    // Reset All State
+    function clearAll() {
+      currentInput = '0';
+      previousInput = '';
+      selectedOperator = null;
+      shouldResetDisplay = false;
+      expressionDisplay.textContent = '';
+      updateDisplay();
+    }
+
+    // History Log Management
+    function addHistoryItem(expression, result) {
+      history.unshift({ expression, result });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (history.length === 0) {
+        emptyHistory.classList.remove('hidden');
+        historyList.innerHTML = '';
+        historyList.appendChild(emptyHistory);
+        return;
+      }
+
+      emptyHistory.classList.add('hidden');
+      historyList.innerHTML = '';
+
+      history.forEach((item, index) => {
+        const historyCard = document.createElement('div');
+        historyCard.className = 'p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/50 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 cursor-pointer transition-all flex flex-col items-end group shadow-sm';
+        
+        historyCard.innerHTML = `
+          <div class="text-xs text-slate-400 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors font-mono">${item.expression} =</div>
+          <div class="text-lg font-bold font-mono text-slate-700 dark:text-slate-200">${Number(item.result).toLocaleString('en-US')}</div>
+        `;
+
+        // Click history item to load value
+        historyCard.addEventListener('click', () => {
+          currentInput = item.result;
+          shouldResetDisplay = false;
+          updateDisplay();
+        });
+
+        historyList.appendChild(historyCard);
+      });
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+      history = [];
+      renderHistory();
+    });
+
+    // Event Listeners for On-Screen Buttons
+    document.querySelectorAll('button[data-number]').forEach(button => {
+      button.addEventListener('click', () => appendNumber(button.dataset.number));
+    });
+
+    document.querySelectorAll('button[data-operator]').forEach(button => {
+      button.addEventListener('click', () => setOperator(button.dataset.operator));
+    });
+
+    document.querySelectorAll('button[data-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.action;
+        if (action === 'clear') clearAll();
+        if (action === 'delete') deleteChar();
+        if (action === 'toggle-sign') toggleSign();
+        if (action === 'decimal') appendDecimal();
+        if (action === 'calculate') compute();
+      });
+    });
+
+    // Keyboard Shortcuts Support
+    window.addEventListener('keydown', (e) => {
+      let selector = null;
+
+      if ((e.key >= '0' && e.key <= '9')) {
+        appendNumber(e.key);
+        selector = `button[data-number="${e.key}"]`;
+      } else if (e.key === '.') {
+        appendDecimal();
+        selector = `button[data-action="decimal"]`;
+      } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+        setOperator(e.key);
+        selector = `button[data-operator="${e.key}"]`;
+      } else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        compute();
+        selector = `button[data-action="calculate"]`;
+      } else if (e.key === 'Backspace') {
+        deleteChar();
+        selector = `button[data-action="delete"]`;
+      } else if (e.key === 'Escape') {
+        clearAll();
+        selector = `button[data-action="clear"]`;
+      }
+
+      // Add visual active state for keypresses
+      if (selector) {
+        const btn = document.querySelector(selector);
+        if (btn) {
+          btn.classList.add('btn-active-key');
+          setTimeout(() => btn.classList.remove('btn-active-key'), 120);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
